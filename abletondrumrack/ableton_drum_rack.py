@@ -7,6 +7,7 @@ from .tools import *
 from .adg import *
 
 
+
 # System random to pick samples
 SYS_RAND = random.SystemRandom()
 # Default Drum Rack pad setup.
@@ -40,7 +41,7 @@ class DrumRack:
         pass
 
         
-    def new_samples(self, new_list, sample_df, loginfo):
+    def new_samples(self, sample_df, loginfo):
         """
             Create required fields for Ableton's xml file given a list of samples.
         """
@@ -51,6 +52,11 @@ class DrumRack:
         new_duration = []
         new_file_size = []
         
+        sample_df.sort_values(by=["SAMPLE_NAME", "FOLDER_PATH"], ascending=False)
+
+
+        new_list = sample_df.index.values.tolist()
+
         for num in new_list:
             fp = sample_df.loc[num]['FULL_FILE_PATH'].replace(' ', '%20').split('\\')
             sample_name = sample_df.loc[num]['SAMPLE_NAME'].split('.')[0]
@@ -58,13 +64,15 @@ class DrumRack:
             real_file_path = sample_df.loc[num]['FULL_FILE_PATH']
             ableton_file_path = 'userfolder:' + fp[0] + '%5C' + fp[1] + '%5C#' + fp[2] + ':' +  ':'.join(fp[3:])
             # If frame and duration provided in samle database use existing data, else try to extract.
+            
             if not pd.isnull(sample_df.loc[num]['FRAMES']):
                 duration = int(sample_df.loc[num]['FRAMES'])
             else:
-                try:
-                    duration = sample_characteristics(sample_df.loc[num]['FULL_FILE_PATH'], loginfo)[0]
-                except:
-                    duration = 0
+                duration = 0 
+                # try:
+                #      (sample_df.loc[num]['FULL_FILE_PATH'], loginfo)[0]
+                # except:
+                #     duration = 0
                 
             filesize = os.path.getsize(sample_df.loc[num]['FULL_FILE_PATH'])
             new_duration.append(duration)
@@ -75,6 +83,39 @@ class DrumRack:
             new_browser_content_path.append(ableton_file_path)
             
         return new_sample_name, new_relative_path_samples, new_path_samples, new_browser_content_path, new_duration, new_file_size  
+
+    def make_moi_drum_rack(self, samples, fname, slots, pad=92, Loginfo=False, choke=False, random_transpose=False):
+        endpad = pad  #default C1
+        startingpad = endpad + slots  
+
+        if pad > 128:
+            raise ValueError('Max pad number is 128')
+            
+        if slots > pad:
+            raise ValueError('Not enough slots!\nMax slots for selected pads [{}] is {}'.format(pad, pad))
+        
+        #random_samples = [SYS_RAND.randint(0, len(samples) - 1) for x in range(slots)]
+        #random_samples = [range(0, len(samples) - 1) for x in range(slots)]
+        n_name, n_rel_path, n_f_path, n_browser, n_duration, n_filesize = self.new_samples(samples, Loginfo)
+        _samples = list(zip(n_name, n_rel_path, n_f_path, n_browser, n_duration, n_filesize))
+        
+        if random_transpose:
+            transpose = [SYS_RAND.randint(self.rand_transpose[0], self.rand_transpose[1]) for x in range(slots)]
+        else:
+            transpose = [0 for x in range(slots)]
+        
+        blank = create_xml(_samples, pad, choke, transpose)
+        
+        # if not fname:
+        #     fname = 'python_drum_rack'
+            
+        write_adg(blank, fname, self.save_path)
+        
+        for i, r in samples.iterrows():
+            update_sample_IN_DRUMRACK(fname, r["FULL_FILE_PATH"])
+
+        return 'Succesfully created preset {}'.format(fname)
+
 
 
     def make_drum_rack(self, samples, slots=16, fname=False, pad=128, loginfo=False, choke=False, random_transpose=False):
@@ -88,8 +129,9 @@ class DrumRack:
             
         if slots > pad:
             raise ValueError('Not enough slots!\nMax slots for selected pads [{}] is {}'.format(pad, pad))
-            
+        #x = 0    
         random_samples = [SYS_RAND.randint(0, len(samples) - 1) for x in range(slots)]
+        #random_samples = [range(0, len(samples) - 1) for x in range(slots)]
         n_name, n_rel_path, n_f_path, n_browser, n_duration, n_filesize = self.new_samples(random_samples, samples, loginfo)
         _samples = list(zip(n_name, n_rel_path, n_f_path, n_browser, n_duration, n_filesize))
         
