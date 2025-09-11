@@ -338,7 +338,7 @@ def get_main_freq(samples_df):
             if error == True:
                 errsamples.append(r['FULL_FILE_PATH'])
         else:
-            errsamples.append(r['FULL_FILE_PATH'])
+            
             continue
     return errsamples
 
