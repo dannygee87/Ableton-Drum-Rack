@@ -7,10 +7,10 @@ from tokenize import String
 import numpy as np
 import pandas as pd
 import soundfile as sf
-from scipy import fft
 import numpy as np
-from scipy.io import wavfile
 from pathlib import PureWindowsPath, PurePosixPath, PurePath
+from scipy import fft
+from scipy.io import wavfile
 
 
 
@@ -333,11 +333,12 @@ def get_main_freq(samples_df):
     error = False
     errsamples = []
     for i ,r in samples_df.iterrows():
-        if r['MAINFREQ'] is None and r['LENGTH'] < 5:   # check if MAINFREQ is NULL and Sample_Length < 1 sek
+        if r['MAINFREQ'] is None and r['LENGTH'] < 5:   # check if MAINFREQ is NULL and Sample_Length < 5 sek
             error = sample_main_freq(r['FULL_FILE_PATH'], loginfo=True)
             if error == True:
                 errsamples.append(r['FULL_FILE_PATH'])
         else:
+            errsamples.append(r['FULL_FILE_PATH'])
             continue
     return errsamples
 
